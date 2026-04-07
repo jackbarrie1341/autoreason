@@ -14,9 +14,10 @@ Based on [@shannholmberg's AutoReason method](https://x.com/shannholmberg).
 claude --plugin-dir ./autoreason
 ```
 
-**From a marketplace** (once published):
-```
-/plugin install autoreason@<marketplace-name>
+**From the marketplace:**
+```bash
+claude plugin marketplace add jackbarrie1341/claude-plugins
+claude plugin install autoreason@jackbarrie
 ```
 
 ## Usage

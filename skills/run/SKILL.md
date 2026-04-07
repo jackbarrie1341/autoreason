@@ -9,6 +9,7 @@ description: >
   possible", "optimize this", "iterate on this until it's great", "red-team this", or
   "debate-refine this". If the user wants something polished to a very high standard and
   there's no numeric score to optimize, this is the skill to use.
+argument-hint: "Describe what you want written (e.g., 'a cold outreach email targeting CFOs')"
 ---
 
 # AutoReason
@@ -64,8 +65,18 @@ LOOP:
 ### Step 0: Capture the Anchor
 
 Ask the user what they want created, or use what they've already described. Distill it into
-a clear, self-contained task prompt. Confirm it with the user. This is the ANCHOR — it never
-changes across rounds.
+a clear, self-contained task prompt.
+
+**Pre-flight checklist** — before confirming the anchor, verify it includes or you have inferred:
+- **Target audience**: Who will read this?
+- **Desired tone**: Formal, casual, persuasive, technical, etc.
+- **Approximate length/format**: Email, blog post, landing page, paragraph count, word count, etc.
+- **Key points to cover**: What must be included?
+- **Constraints**: Anything to avoid, brand voice requirements, etc.
+
+If any are missing and would materially affect quality, ask the user before proceeding.
+
+Confirm the anchor with the user. This is the ANCHOR — it never changes across rounds.
 
 ### Step 1: Author A
 
@@ -198,6 +209,20 @@ Show the user the converged winning version. Also provide a brief summary:
 - Borda scores from each round
 - One-line description of what changed each round
 
+## Handling Malformed Output
+
+**Judge output**: After each judge returns, validate the output matches the expected format
+(`RANK 1: Option [1-3]`, `RANK 2: Option [1-3]`, `RANK 3: Option [1-3]` with all three
+options present and distinct). If a judge's output is unparseable or invalid:
+- Discard that judge's vote and proceed with the remaining judges (2 judges is still
+  sufficient for Borda scoring).
+- If 2 or more judges return malformed output, re-run the entire judge panel once.
+- Log a warning to the user when any judge output is discarded.
+
+**Author/rewriter/synthesizer output**: If an agent's output begins with preamble
+("Here's the draft:", "Sure!", "I'll write...", etc.), strip the preamble before passing
+the content to downstream agents. Only the actual piece should flow through the pipeline.
+
 ## Critical Rules
 
 1. **Every role is a separate subagent invocation.** Never combine roles in one context.
@@ -207,3 +232,4 @@ Show the user the converged winning version. Also provide a brief summary:
 5. **The synthesizer sees A and B but NOT the critique.** It works from outputs only.
 6. **Maximum 5 rounds.** Stop and present best if no convergence.
 7. **All spawned agents use `model: sonnet`** via their agent definitions to save cost.
+8. **When constructing prompts for subagents, copy the template EXACTLY as specified.** Do NOT add additional context, framing, commentary, or instructions beyond what each template specifies. The isolation of each agent depends on this.

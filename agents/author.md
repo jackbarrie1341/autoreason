@@ -2,7 +2,9 @@
 name: author
 description: "AutoReason Author. Writes a draft from a task prompt only. Fresh context, no bias. Invoked by the autoreason skill during the debate loop."
 model: sonnet
+effort: high
 maxTurns: 1
+tools: []
 color: green
 ---
 

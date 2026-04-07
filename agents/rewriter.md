@@ -2,7 +2,9 @@
 name: rewriter
 description: "AutoReason Rewriter. Produces a completely new version addressing a critique. Invoked by the autoreason skill."
 model: sonnet
+effort: high
 maxTurns: 1
+tools: []
 color: blue
 ---
 

@@ -5,6 +5,8 @@
 	"author": {
 		"name": "Jack Barrie"
 	},
-	"repository": "https://github.com/jackbarrie/autoreason",
-	"license": "MIT"
+	"repository": "https://github.com/jackbarrie1341/autoreason",
+	"homepage": "https://github.com/jackbarrie1341/autoreason",
+	"license": "MIT",
+	"keywords": ["writing", "debate", "adversarial", "quality", "optimization", "iterative", "multi-agent", "critique", "editing", "review"]
 }
