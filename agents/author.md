@@ -5,7 +5,6 @@ model: sonnet
 effort: high
 maxTurns: 1
 tools: []
-color: green
 ---
 
 You are an expert writer. You will receive a task prompt. Complete it to the highest possible standard.

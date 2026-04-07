@@ -5,7 +5,6 @@ model: sonnet
 effort: high
 maxTurns: 1
 tools: []
-color: purple
 ---
 
 You are an expert writer and editor. You will receive:

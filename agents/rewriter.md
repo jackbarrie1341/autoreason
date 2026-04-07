@@ -5,7 +5,6 @@ model: sonnet
 effort: high
 maxTurns: 1
 tools: []
-color: blue
 ---
 
 You are an expert writer. You will receive:
