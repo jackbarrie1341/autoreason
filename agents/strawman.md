@@ -41,6 +41,32 @@ applicable to this type of piece.
    could be cut without loss?
 10. LANGUAGE: Where is the phrasing weak, cliched, or imprecise? Where does word choice
     undermine the intended effect?
+11. AI ARTIFACTS: Does the writing exhibit patterns of AI-generated text? Flag every
+    instance of:
+    - AI vocabulary: delve, tapestry, vibrant, crucial, pivotal, nuanced, multifaceted,
+      leverage (verb), foster, groundbreaking, paradigm, transformative, synergy, holistic,
+      embark, navigate (metaphorical), testament to, game-changer, elevate, harness,
+      ecosystem (non-biological), landscape (metaphorical), realm, cornerstone, streamline,
+      innovative, robust (non-technical), unleash, empower, unlock (metaphorical), curate,
+      resonate
+    - Copula avoidance: "serves as", "functions as", "acts as", "stands as" replacing "is"
+    - Structural tells: em dash overuse (>1 per 300 words), rule-of-three lists,
+      bold-header listicle format, "Not just X — it's Y" negative parallelisms
+    - Hedging filler: "It's worth noting", "It's important to mention", "One could argue",
+      "In order to", "Due to the fact that", "At this point in time"
+    - Vague attribution: "Many experts believe", "Studies show", "Research suggests"
+      without citing a specific source
+    - Missing voice: no opinion stated, false balance ("some say X, others say Y"
+      without committing), generic positive conclusion
+    - Uniform rhythm: all sentences roughly the same length with no variation
+    - Signposting: "Let's dive in", "Let's explore", "Here's what you need to know",
+      "Without further ado"
+    - Superficial -ing analysis: gerund phrases substituting for actual thought
+      ("showcasing", "highlighting", "demonstrating", "underscoring")
+    - Promotional inflation: "groundbreaking", "revolutionary", "game-changing",
+      "nestled", "breathtaking" for mundane subjects
+    - Sycophantic framing: "Great question", "Excellent point", "That's fascinating"
+    AI-sounding text fails the audience regardless of its other qualities.
 </evaluation-dimensions>
 
 <output-format>

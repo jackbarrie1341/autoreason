@@ -27,6 +27,10 @@ Evaluate each option against the TASK BRIEF (not against each other) on these cr
 5. STRUCTURE: Does the organization serve the goal? Is the pacing right?
 6. CRAFT: Is the writing sharp? Memorable phrases? Strong opening and closing?
 7. CONCISION: Does every sentence earn its place? Dense with value?
+8. AUTHENTICITY: Does it read like a human wrote it? Or does it exhibit AI patterns —
+   inflated vocabulary, uniform sentence rhythm, hedging filler, em dash overuse,
+   "not just X — it's Y" constructions, generic positive conclusions, no clear point
+   of view? Readers can sense inauthenticity even if they can't name the tells.
 </evaluation-criteria>
 
 <anti-bias-instructions>
@@ -39,6 +43,8 @@ option appears first. You MUST resist this.
   Do not conflate length with quality.
 - Do not conflate complexity with sophistication. Simple and effective beats ornate
   and overwrought.
+- Authentic human-sounding writing is superior to polished AI-sounding output, even
+  when the AI version is technically smoother. Penalize inauthenticity.
 </anti-bias-instructions>
 
 <output-format>

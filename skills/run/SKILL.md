@@ -10,6 +10,11 @@ description: >
   "debate-refine this". If the user wants something polished to a very high standard and
   there's no numeric score to optimize, this is the skill to use.
 argument-hint: "Describe what you want written (e.g., 'a cold outreach email targeting CFOs')"
+allowed-tools:
+  - Bash
+  - AskUserQuestion
+  - Read
+  - Write
 ---
 
 # AutoReason
@@ -36,21 +41,33 @@ This plugin provides five dedicated subagents:
 | Synthesizer | `autoreason:synthesizer` | sonnet | Merges best of two versions |
 | Judge | `autoreason:judge` | opus | Blind ranked evaluation of three candidates |
 
-## Model Configuration
+## Configuration
 
-The default model for each agent is set in its agent definition frontmatter. Models can
-be overridden at invocation time using the Agent tool's `model` parameter.
+Settings are stored in `~/.autoreason.json` and persist across sessions. Environment
+variables override file settings for one-off changes. On first run, the skill prompts
+the user to choose model configuration and max rounds, then saves to the config file.
+
+**Settings:**
+- **Models** — which model each agent uses (default: sonnet for generators, opus for judges)
+- **Max rounds** — maximum debate rounds before stopping (default: 5)
 
 **Override hierarchy (highest priority first):**
 
-1. `AUTOREASON_MODE=max` — sets ALL agents to `opus`
+For models:
+1. `AUTOREASON_MODE=max` env var → all agents use `opus`
 2. Per-agent env vars: `AUTOREASON_MODEL_AUTHOR`, `AUTOREASON_MODEL_STRAWMAN`,
    `AUTOREASON_MODEL_REWRITER`, `AUTOREASON_MODEL_SYNTHESIZER`, `AUTOREASON_MODEL_JUDGE`
 3. `CLAUDE_CODE_SUBAGENT_MODEL` — Claude Code's built-in global override
-4. Agent frontmatter default (sonnet for most, opus for judge)
+4. Config file `~/.autoreason.json`
+5. Agent frontmatter default (sonnet for most, opus for judge)
+
+For max rounds:
+1. `AUTOREASON_MAX_ROUNDS` env var
+2. Config file `~/.autoreason.json`
+3. Default: 5
 
 When spawning each agent, if an override applies, pass the `model` parameter to the
-Agent tool call. Resolve model configuration ONCE at Step 0 and report to the user.
+Agent tool call. Resolve configuration ONCE at Step 0 and report to the user.
 
 ## The Algorithm
 
@@ -73,6 +90,7 @@ LOOP:
      - If A (incumbent) wins → streak++
      - If B or AB wins → streak = 0
      - streak == 2 → STOP (converged)
+     - round == max_rounds → STOP (max reached)
      - Otherwise → back to step 2
 ```
 
@@ -80,21 +98,62 @@ LOOP:
 
 ### Step 0: Setup — Anchor and Configuration
 
-**0a. Resolve model configuration.**
+**0a. Resolve configuration (models and max rounds).**
 
-Run a single Bash command to check environment variables:
+Run a single Bash command to check the config file and environment variables:
 
 ```bash
-echo "AUTOREASON_MODE=${AUTOREASON_MODE:-unset}" && echo "AUTOREASON_MODEL_AUTHOR=${AUTOREASON_MODEL_AUTHOR:-unset}" && echo "AUTOREASON_MODEL_STRAWMAN=${AUTOREASON_MODEL_STRAWMAN:-unset}" && echo "AUTOREASON_MODEL_REWRITER=${AUTOREASON_MODEL_REWRITER:-unset}" && echo "AUTOREASON_MODEL_SYNTHESIZER=${AUTOREASON_MODEL_SYNTHESIZER:-unset}" && echo "AUTOREASON_MODEL_JUDGE=${AUTOREASON_MODEL_JUDGE:-unset}" && echo "CLAUDE_CODE_SUBAGENT_MODEL=${CLAUDE_CODE_SUBAGENT_MODEL:-unset}"
+echo "=== Config File ===" && cat ~/.autoreason.json 2>/dev/null || echo "(none)" && echo "" && echo "=== Env Overrides ===" && echo "AUTOREASON_MODE=${AUTOREASON_MODE:-unset}" && echo "AUTOREASON_MAX_ROUNDS=${AUTOREASON_MAX_ROUNDS:-unset}" && echo "AUTOREASON_MODEL_AUTHOR=${AUTOREASON_MODEL_AUTHOR:-unset}" && echo "AUTOREASON_MODEL_STRAWMAN=${AUTOREASON_MODEL_STRAWMAN:-unset}" && echo "AUTOREASON_MODEL_REWRITER=${AUTOREASON_MODEL_REWRITER:-unset}" && echo "AUTOREASON_MODEL_SYNTHESIZER=${AUTOREASON_MODEL_SYNTHESIZER:-unset}" && echo "AUTOREASON_MODEL_JUDGE=${AUTOREASON_MODEL_JUDGE:-unset}" && echo "CLAUDE_CODE_SUBAGENT_MODEL=${CLAUDE_CODE_SUBAGENT_MODEL:-unset}"
 ```
 
-Resolve the effective model for each agent using the override hierarchy. Store the
-resolved config as state for use when spawning agents throughout the run.
+**If no config file exists (`~/.autoreason.json`)**, this is the first run. Ask the user
+two questions using AskUserQuestion before proceeding:
+
+1. **Models:** "Which model configuration? **default** (sonnet + opus judges, recommended),
+   **max** (all opus), or **budget** (all haiku)?"
+2. **Max rounds:** "Max rounds before stopping? (default: 5, typical convergence: 2-3)"
+
+Save their answers to `~/.autoreason.json` using the Write tool:
+```json
+{
+  "models": {
+    "mode": "{mode or null}",
+    "author": null,
+    "strawman": null,
+    "rewriter": null,
+    "synthesizer": null,
+    "judge": null
+  },
+  "max_rounds": {N}
+}
+```
+
+**Resolve effective configuration using this hierarchy (highest priority first):**
+
+For models:
+1. `AUTOREASON_MODE` env var → all agents use that model
+2. Per-agent env vars (`AUTOREASON_MODEL_*`)
+3. `CLAUDE_CODE_SUBAGENT_MODEL` env var
+4. Config file values from `~/.autoreason.json` (`models.mode` or per-agent overrides)
+5. Agent frontmatter defaults (sonnet for most, opus for judge)
+
+For max rounds:
+1. `AUTOREASON_MAX_ROUNDS` env var
+2. Config file `max_rounds` from `~/.autoreason.json`
+3. Default: 5
+
+Note: config file `models.mode` values map as follows:
+- `"max"` → all agents use opus
+- `"budget"` → all agents use haiku
+- `null` → use per-agent values or frontmatter defaults
+
+Store the resolved config as state for use throughout the run.
 
 Report to the user:
 
 ```
 Models: author={model}, strawman={model}, rewriter={model}, synthesizer={model}, judge={model}
+Max rounds: {max_rounds}
 ```
 
 **0b. Capture and validate the anchor.**
@@ -116,6 +175,8 @@ RECOMMENDED (infer if not stated, confirm with user):
 OPTIONAL (use defaults if not stated):
 - Brand voice reference
 - Specific call-to-action
+- Voice sample — if the user provides an example of their own writing or a style to
+  match, capture it verbatim in the anchor as voice_sample
 </anchor-validation>
 
 Once validated, present the complete anchor to the user for confirmation:
@@ -129,6 +190,7 @@ Tone: {tone}
 Length: {length}
 Key points: {points}
 Constraints: {constraints}
+Voice sample: {voice_sample or "none provided"}
 Brief: {the full task description}
 ```
 
@@ -152,6 +214,13 @@ Complete this task to the highest possible standard:
 
 TASK:
 {anchor}
+```
+
+If the anchor includes a voice_sample, append this block after the TASK block:
+
+```
+VOICE REFERENCE (match this writing's rhythm, vocabulary level, and register — don't copy its content):
+{voice_sample}
 ```
 
 If a model override applies for the author, pass the `model` parameter to the Agent tool.
@@ -203,6 +272,8 @@ CRITIQUE:
 {critique}
 ```
 
+If the anchor includes a voice_sample, append the VOICE REFERENCE block (same as Step 1) after the CRITIQUE block.
+
 3. **Wait for B to complete.**
 
 4. **Candidate AB** — spawn `autoreason:synthesizer` (needs both A and B):
@@ -218,6 +289,8 @@ VERSION 1:
 VERSION 2:
 {draft_B}
 ```
+
+If the anchor includes a voice_sample, append the VOICE REFERENCE block (same as Step 1) after the VERSION 2 block.
 
 5. **Wait for AB to complete.**
 
@@ -344,7 +417,7 @@ ROUND {N} RESULTS:
 - If A (the incumbent) wins → increment streak
 - If B or AB wins → reset streak to 0; winner becomes new Draft A
 - If streak reaches 2 → STOP. Output final version.
-- If round count reaches 5 → STOP. Output best from final round + note non-convergence.
+- If round count reaches max_rounds → STOP. Output best from final round + note non-convergence.
 - If confidence is SPLIT on the final convergence round → note that the user may want to run an additional round.
 - Otherwise → loop back to Step 2.
 
@@ -415,6 +488,6 @@ flow through the pipeline.
 4. **The strawman never suggests fixes.** Problems only.
 5. **The synthesizer sees A and B but NOT the critique.** It works from outputs only.
 6. **Generate candidate AB exactly ONCE per round.** The same AB text goes to all three judges.
-7. **Maximum 5 rounds.** Stop and present best if no convergence.
+7. **Maximum rounds = max_rounds (from config).** Stop and present best if no convergence.
 8. **Agents use their frontmatter model by default.** Override via the Agent tool's `model` parameter when environment variables specify different models (see Model Configuration).
 9. **When constructing prompts for subagents, copy the template EXACTLY as specified.** Do NOT add additional context, framing, commentary, or instructions beyond what each template specifies. The isolation of each agent depends on this.

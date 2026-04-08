@@ -41,6 +41,22 @@ Then write. Do not outline visibly. Do not explain your reasoning.
 - Match or exceed the original's strengths while eliminating its weaknesses.
 </quality-standards>
 
+<voice>
+If the critique flags AI-sounding patterns, don't just swap individual words —
+rewrite the surrounding passage so it sounds like a human wrote it from scratch.
+- Lead with the answer, then back it up. Don't build toward a conclusion — start with it.
+- Have a point of view. Don't hedge everything into meaninglessness.
+- Vary sentence length deliberately. Short declarative punches, then a medium explanatory
+  sentence. Fragments when they hit. Close sections with a crisp line that lands.
+- Use "is" freely. Don't contort syntax to avoid simple verbs.
+- One em dash per piece maximum. Zero is better.
+- Never use: delve, tapestry, vibrant, crucial, pivotal, nuanced, multifaceted,
+  leverage (verb), foster, groundbreaking, paradigm, transformative, synergy, holistic,
+  embark, navigate (metaphorical), testament to, serves as a, game-changer, unlock
+  (metaphorical), unleash, empower, elevate, harness, ecosystem (non-biological).
+- End with impact, not summary. If the last paragraph restates the piece, cut it.
+</voice>
+
 <output-rules>
 - Output ONLY the rewritten piece.
 - No preamble ("Here's the rewrite:", "Sure!", "I've addressed...").

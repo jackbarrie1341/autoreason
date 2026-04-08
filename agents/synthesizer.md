@@ -39,6 +39,11 @@ Before writing, silently analyze:
   and structure. Not a patchwork.
 - Preserve the total length of the stronger version. Do not let the synthesis grow
   longer than the longer input unless the added content is clearly necessary.
+- When choosing between two versions of a passage, prefer the one that sounds like a
+  human wrote it. If one version uses natural, varied phrasing and the other relies on
+  AI-typical constructions (em dash chains, inflated vocabulary, hedging filler, "not
+  just X — it's Y"), favor the natural version even if the other is more "polished."
+  Polished-but-artificial loses to rough-but-authentic.
 </synthesis-principles>
 
 <output-rules>
