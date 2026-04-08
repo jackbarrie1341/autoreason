@@ -1,7 +1,7 @@
 {
 	"name": "autoreason",
 	"description": "Iterative quality optimization for subjective work through adversarial multi-agent debate. Replaces numeric metrics with a loop of isolated agents arguing — author, critic, rewriter, synthesizer, blind judges — until nothing can beat the current version.",
-	"version": "2.0.0",
+	"version": "1.0.0",
 	"author": {
 		"name": "Jack Barrie"
 	},
