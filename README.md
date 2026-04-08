@@ -2,8 +2,8 @@
 
 Iterative quality optimization for subjective work through adversarial multi-agent debate.
 
-Instead of asking one LLM to "make this better," AutoReason pits isolated agents against each
-other in a convergence loop until nothing can beat the current version.
+Instead of asking one LLM to "make this better," AutoReason pits isolated agents against
+each other in a convergence loop until nothing can beat the current version.
 
 Based on [@shannholmberg's AutoReason method](https://x.com/shannholmberg).
 
@@ -30,25 +30,61 @@ Invoke directly:
 Or just describe your task and mention quality — the skill auto-triggers when it detects
 you want something optimized to the highest standard with no objective metric.
 
+Check or change model configuration:
+```
+/autoreason:config
+/autoreason:config max
+/autoreason:config budget
+```
+
 ## What Happens
 
 1. **Author** writes a draft (sees only the task — fresh context, no bias)
-2. **Strawman** attacks it hard (problems only, no fixes — adversarial by design)
-3. Three candidates generated: **A** (original), **B** (rewrite), **AB** (synthesis)
-4. **3 blind judges** rank them with randomized labels (Borda count, no author bias)
+2. **Strawman** attacks it across 10 dimensions (problems only, no fixes — adversarial by design)
+3. Three candidates generated: **A** (original), **B** (rewrite), **AB** (synthesis — generated once, shared across judges)
+4. **3 blind judges** rank them with Latin square shuffled labels (Borda count, no position bias)
 5. Winner becomes new draft; loop until it wins twice in a row (convergence)
+6. Each round reports Borda scores, winner, judge confidence (unanimous/majority/split), and streak
 
-Every agent runs on **Sonnet** to keep costs low. The orchestrator (your main session) can
-run on any model.
+Every agent runs in isolation with fresh context. No shared state between roles.
+
+## Model Configuration
+
+**Defaults:**
+
+| Agent | Model | Why |
+|---|---|---|
+| Author | sonnet | Quality ceiling set by the iterative loop, not the first draft |
+| Strawman | sonnet | Structured dimensions guide effective critique on any model |
+| Rewriter | sonnet | Parallel capability to author |
+| Synthesizer | sonnet | Well-defined merge task |
+| Judge | **opus** | Most critical role — bad judging breaks the entire loop |
+
+**Override with environment variables:**
+
+```bash
+# Max mode — all agents use Opus (highest quality, ~3x cost)
+export AUTOREASON_MODE=max
+
+# Budget mode — all agents use Haiku
+export CLAUDE_CODE_SUBAGENT_MODEL=haiku
+
+# Custom per-agent overrides
+export AUTOREASON_MODEL_JUDGE=sonnet    # downgrade judge to save cost
+export AUTOREASON_MODEL_AUTHOR=opus     # upgrade author for better first drafts
+```
+
+**Override priority:** `AUTOREASON_MODE=max` > per-agent env vars > `CLAUDE_CODE_SUBAGENT_MODEL` > agent frontmatter defaults.
+
+Run `/autoreason:config` to see your current resolved configuration.
 
 ## Cost
 
-~8 Sonnet calls per round. Typical convergence in 2–3 rounds = ~16–24 Sonnet calls.
+**Default configuration:** ~4 Sonnet + 3 Opus calls per round.
+**Max mode (all Opus):** ~8 Opus calls per round.
+**Budget mode (all Haiku):** ~8 Haiku calls per round.
 
-To force Haiku for even cheaper runs:
-```bash
-export CLAUDE_CODE_SUBAGENT_MODEL=haiku
-```
+Typical convergence in 2-3 rounds.
 
 ## Plugin Structure
 
@@ -61,10 +97,12 @@ autoreason/
 │   ├── strawman.md          # Adversarial critic (model: sonnet)
 │   ├── rewriter.md          # Rewrites addressing critique (model: sonnet)
 │   ├── synthesizer.md       # Merges best of two versions (model: sonnet)
-│   └── judge.md             # Blind ranked evaluation (model: sonnet)
+│   └── judge.md             # Blind ranked evaluation (model: opus)
 ├── skills/
-│   └── run/
-│       └── SKILL.md         # Orchestration logic
+│   ├── run/
+│   │   └── SKILL.md         # Orchestration logic
+│   └── config/
+│       └── SKILL.md         # Model configuration display
 └── README.md
 ```
 
@@ -74,6 +112,6 @@ A **skill** is a single SKILL.md file that teaches Claude how to do something. I
 bundle agents.
 
 A **plugin** is a self-contained package with a manifest that can include skills, agents,
-hooks, MCP servers, and settings. AutoReason needs 5 dedicated agents alongside 1 orchestration
-skill — that's a plugin. Plugins also get namespacing, marketplace distribution, and clean
+hooks, MCP servers, and settings. AutoReason needs 5 dedicated agents alongside 2 skills —
+that's a plugin. Plugins also get namespacing, marketplace distribution, and clean
 install/update via `/plugin install`.
