@@ -15,13 +15,22 @@ allowed-tools:
 # AutoReason Configuration
 
 Display the current configuration, help the user set overrides, and persist settings
-to `~/.autoreason.json` so they survive across sessions.
+so they survive across sessions.
 
 ## Config File
 
-Settings are stored in `~/.autoreason.json`. This file is created automatically when the
-user first configures autoreason (or on first run of the plugin). Environment variables
-still override file settings for one-off changes.
+Settings can be stored in two locations (checked in order):
+
+1. **Project-level:** `.autoreason.json` in the working directory (highest priority)
+2. **User-level:** `~/.autoreason.json` in the home directory (fallback)
+
+Project-level config is recommended because it persists with the repo — this is important
+for ephemeral environments like Claude Code cowork sessions where the home directory
+resets each session.
+
+The config file is created automatically when the user first configures autoreason
+(or on first run of the plugin). Environment variables still override file settings
+for one-off changes.
 
 **File format:**
 ```json
@@ -44,11 +53,14 @@ A `null` value means "use default." Only non-null values override defaults.
 
 ### 1. Read Current Configuration
 
-First, check for a saved config file and environment variables:
+First, check for config files at both locations and environment variables:
 
 ```bash
-echo "=== Saved Config ===" && cat ~/.autoreason.json 2>/dev/null || echo "(no config file)" && echo "" && echo "=== Environment Overrides ===" && echo "AUTOREASON_MODE=${AUTOREASON_MODE:-unset}" && echo "AUTOREASON_MAX_ROUNDS=${AUTOREASON_MAX_ROUNDS:-unset}" && echo "AUTOREASON_MODEL_AUTHOR=${AUTOREASON_MODEL_AUTHOR:-unset}" && echo "AUTOREASON_MODEL_STRAWMAN=${AUTOREASON_MODEL_STRAWMAN:-unset}" && echo "AUTOREASON_MODEL_REWRITER=${AUTOREASON_MODEL_REWRITER:-unset}" && echo "AUTOREASON_MODEL_SYNTHESIZER=${AUTOREASON_MODEL_SYNTHESIZER:-unset}" && echo "AUTOREASON_MODEL_JUDGE=${AUTOREASON_MODEL_JUDGE:-unset}" && echo "CLAUDE_CODE_SUBAGENT_MODEL=${CLAUDE_CODE_SUBAGENT_MODEL:-unset}"
+echo "=== Project Config (.autoreason.json) ===" && cat .autoreason.json 2>/dev/null || echo "(none)" && echo "" && echo "=== User Config (~/.autoreason.json) ===" && cat ~/.autoreason.json 2>/dev/null || echo "(none)" && echo "" && echo "=== Environment Overrides ===" && echo "AUTOREASON_MODE=${AUTOREASON_MODE:-unset}" && echo "AUTOREASON_MAX_ROUNDS=${AUTOREASON_MAX_ROUNDS:-unset}" && echo "AUTOREASON_MODEL_AUTHOR=${AUTOREASON_MODEL_AUTHOR:-unset}" && echo "AUTOREASON_MODEL_STRAWMAN=${AUTOREASON_MODEL_STRAWMAN:-unset}" && echo "AUTOREASON_MODEL_REWRITER=${AUTOREASON_MODEL_REWRITER:-unset}" && echo "AUTOREASON_MODEL_SYNTHESIZER=${AUTOREASON_MODEL_SYNTHESIZER:-unset}" && echo "AUTOREASON_MODEL_JUDGE=${AUTOREASON_MODEL_JUDGE:-unset}" && echo "CLAUDE_CODE_SUBAGENT_MODEL=${CLAUDE_CODE_SUBAGENT_MODEL:-unset}"
 ```
+
+The **effective config** is whichever file is found first: project-level, then user-level.
+If both exist, project-level wins.
 
 ### 2. Resolve and Display Effective Configuration
 
@@ -58,12 +70,12 @@ Apply the override hierarchy (highest priority first):
 1. `AUTOREASON_MODE=max` env var → all agents use `opus`
 2. Per-agent env vars (`AUTOREASON_MODEL_*`) → override specific agents
 3. `CLAUDE_CODE_SUBAGENT_MODEL` → override all agents globally
-4. Config file `models.mode` or per-agent values from `~/.autoreason.json`
+4. Config file `models.mode` or per-agent values — project-level (`.autoreason.json`) first, then user-level (`~/.autoreason.json`)
 5. Agent frontmatter defaults (see table below)
 
 **For max rounds:**
 1. `AUTOREASON_MAX_ROUNDS` env var
-2. Config file `max_rounds` from `~/.autoreason.json`
+2. Config file `max_rounds` — project-level first, then user-level
 3. Default: 5
 
 **Default configuration** (no config file, no env vars):
@@ -104,7 +116,9 @@ If they pick "custom," ask which model (opus/sonnet/haiku) for each agent.
 
 ### 4. Save Configuration
 
-After the user answers, write the config to `~/.autoreason.json` using the Write tool.
+After the user answers, write the config using the Write tool. Save to whichever location
+already has a config file. If neither exists (first run), default to **project-level**
+(`.autoreason.json` in the working directory) for portability across sessions.
 
 Example for default models with 4 max rounds:
 ```json
@@ -136,7 +150,7 @@ Example for max mode:
 }
 ```
 
-Confirm to the user: `"Settings saved to ~/.autoreason.json."`
+Confirm to the user with the path that was written, e.g.: `"Settings saved to .autoreason.json (project-level)."`
 
 ### 5. Presets
 
@@ -147,7 +161,7 @@ Note: budget mode maps to setting `CLAUDE_CODE_SUBAGENT_MODEL=haiku` at runtime 
 there's no built-in "budget" mode. When the run skill reads `mode: "budget"`, it should
 resolve all agents to haiku.
 
-**If user said "reset":** Delete `~/.autoreason.json` and confirm.
+**If user said "reset":** Delete both `.autoreason.json` (project-level) and `~/.autoreason.json` (user-level) if they exist, and confirm.
 
 ### 6. Cost Estimates
 

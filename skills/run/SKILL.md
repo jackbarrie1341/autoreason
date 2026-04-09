@@ -99,13 +99,21 @@ LOOP:
 
 **0a. Resolve configuration (models and max rounds).**
 
-Run a single Bash command to check the config file and environment variables:
+Config can live in two locations. **Project-level** (`.autoreason.json` in the working
+directory) takes priority over **user-level** (`~/.autoreason.json`). Project-level config
+persists with the repo, which is important for ephemeral environments like Claude Code
+cowork sessions where the home directory resets each session.
+
+Run a single Bash command to check both config locations and environment variables:
 
 ```bash
-echo "=== Config File ===" && cat ~/.autoreason.json 2>/dev/null || echo "(none)" && echo "" && echo "=== Env Overrides ===" && echo "AUTOREASON_MODE=${AUTOREASON_MODE:-unset}" && echo "AUTOREASON_MAX_ROUNDS=${AUTOREASON_MAX_ROUNDS:-unset}" && echo "AUTOREASON_MODEL_AUTHOR=${AUTOREASON_MODEL_AUTHOR:-unset}" && echo "AUTOREASON_MODEL_STRAWMAN=${AUTOREASON_MODEL_STRAWMAN:-unset}" && echo "AUTOREASON_MODEL_REWRITER=${AUTOREASON_MODEL_REWRITER:-unset}" && echo "AUTOREASON_MODEL_SYNTHESIZER=${AUTOREASON_MODEL_SYNTHESIZER:-unset}" && echo "AUTOREASON_MODEL_JUDGE=${AUTOREASON_MODEL_JUDGE:-unset}" && echo "CLAUDE_CODE_SUBAGENT_MODEL=${CLAUDE_CODE_SUBAGENT_MODEL:-unset}"
+echo "=== Project Config ===" && cat .autoreason.json 2>/dev/null || echo "(none)" && echo "" && echo "=== User Config ===" && cat ~/.autoreason.json 2>/dev/null || echo "(none)" && echo "" && echo "=== Env Overrides ===" && echo "AUTOREASON_MODE=${AUTOREASON_MODE:-unset}" && echo "AUTOREASON_MAX_ROUNDS=${AUTOREASON_MAX_ROUNDS:-unset}" && echo "AUTOREASON_MODEL_AUTHOR=${AUTOREASON_MODEL_AUTHOR:-unset}" && echo "AUTOREASON_MODEL_STRAWMAN=${AUTOREASON_MODEL_STRAWMAN:-unset}" && echo "AUTOREASON_MODEL_REWRITER=${AUTOREASON_MODEL_REWRITER:-unset}" && echo "AUTOREASON_MODEL_SYNTHESIZER=${AUTOREASON_MODEL_SYNTHESIZER:-unset}" && echo "AUTOREASON_MODEL_JUDGE=${AUTOREASON_MODEL_JUDGE:-unset}" && echo "CLAUDE_CODE_SUBAGENT_MODEL=${CLAUDE_CODE_SUBAGENT_MODEL:-unset}"
 ```
 
-**If no config file exists (`~/.autoreason.json`)**, this is the first run. Ask the user
+The **effective config file** is whichever is found first: project-level (`.autoreason.json`),
+then user-level (`~/.autoreason.json`). If both exist, project-level wins.
+
+**If no config file exists at either location**, this is the first run. Ask the user
 two questions using AskUserQuestion before proceeding:
 
 1. **Models:** "Which model configuration?
@@ -118,7 +126,9 @@ two questions using AskUserQuestion before proceeding:
    - **10** — maximum refinement
    - Or enter a custom number"
 
-Save their answers to `~/.autoreason.json` using the Write tool:
+Save their answers to `.autoreason.json` in the working directory (project-level) using
+the Write tool. This ensures config persists across cowork sessions and other ephemeral
+environments:
 ```json
 {
   "models": {
@@ -139,12 +149,12 @@ For models:
 1. `AUTOREASON_MODE` env var → all agents use that model
 2. Per-agent env vars (`AUTOREASON_MODEL_*`)
 3. `CLAUDE_CODE_SUBAGENT_MODEL` env var
-4. Config file values from `~/.autoreason.json` (`models.mode` or per-agent overrides)
+4. Config file values (`models.mode` or per-agent overrides) — project-level first, then user-level
 5. Agent frontmatter defaults (sonnet for most, opus for judge)
 
 For max rounds:
 1. `AUTOREASON_MAX_ROUNDS` env var
-2. Config file `max_rounds` from `~/.autoreason.json`
+2. Config file `max_rounds` — project-level first, then user-level
 3. Default: 5
 
 Note: config file `models.mode` values map as follows:
@@ -258,7 +268,9 @@ DRAFT:
 Attack this draft. Problems only, no fixes. Tag each problem CRITICAL, MAJOR, or MINOR.
 
 This is refinement round {round}. This draft has survived {round-1} round(s) of
-critique and revision. Focus on problems the target audience would actually notice.
+critique and revision. It may be strong — calibrate your severity accordingly.
+Focus only on problems the target audience would actually notice. If the draft is
+genuinely good, a short critique with only MINOR issues is the correct output.
 
 TASK:
 {anchor}
