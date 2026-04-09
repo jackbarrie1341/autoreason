@@ -71,10 +71,10 @@ Apply the override hierarchy (highest priority first):
 | Agent | Default Model | Effort | Rationale |
 |---|---|---|---|
 | Author | sonnet | high | Iterative loop compensates; quality ceiling set by debate |
-| Strawman | sonnet | high | Structured dimensions guide critique effectively |
-| Rewriter | sonnet | high | Parallel capability to author |
-| Synthesizer | sonnet | high | Well-defined merge task |
-| Judge | opus | max | Most critical role — bad judging breaks the loop |
+| Strawman | sonnet | high | Structured dimensions + severity tiers guide critique |
+| Rewriter | sonnet | high | Parallel capability to author; prioritizes by severity |
+| Synthesizer | sonnet | high | Well-defined merge task with length discipline |
+| Judge | opus | max | Per-criterion analysis before ranking; most critical role |
 
 | Setting | Default |
 |---|---|
@@ -88,15 +88,19 @@ If the user wants to change settings, ask them two questions using AskUserQuesti
 
 **Question 1 — Models:**
 > Which model configuration do you want?
-> - **default** — sonnet for generators, opus for judges (recommended)
-> - **max** — opus for all agents (highest quality, ~3x cost)
-> - **budget** — haiku for all agents (lowest cost)
-> - **custom** — choose per agent
+> - **default** — Balanced cost and quality. Sonnet for generators, Opus for judges. (recommended)
+> - **max** — Highest quality, most expensive. Opus for all agents.
+> - **budget** — Lowest cost, fastest. Haiku for all agents.
+> - **custom** — Choose per agent.
 
 If they pick "custom," ask which model (opus/sonnet/haiku) for each agent.
 
 **Question 2 — Max rounds:**
-> How many rounds maximum before stopping? (default: 5, typical convergence: 2-3 rounds)
+> Max rounds before stopping?
+> - **5** (default) — typical convergence in 2-3 rounds
+> - **7** — more room to iterate
+> - **10** — maximum refinement
+> - Or enter a custom number
 
 ### 4. Save Configuration
 

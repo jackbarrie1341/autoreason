@@ -36,10 +36,10 @@ This plugin provides five dedicated subagents:
 | Agent | Plugin Name | Default Model | Role |
 |---|---|---|---|
 | Author | `autoreason:author` | sonnet | Writes drafts from task prompt only |
-| Strawman | `autoreason:strawman` | sonnet | Attacks drafts adversarially (problems only, no fixes) |
-| Rewriter | `autoreason:rewriter` | sonnet | Rewrites from scratch using original + critique |
-| Synthesizer | `autoreason:synthesizer` | sonnet | Merges best of two versions |
-| Judge | `autoreason:judge` | opus | Blind ranked evaluation of three candidates |
+| Strawman | `autoreason:strawman` | sonnet | Severity-rated critique (CRITICAL/MAJOR/MINOR) |
+| Rewriter | `autoreason:rewriter` | sonnet | Rewrites prioritizing CRITICAL/MAJOR problems |
+| Synthesizer | `autoreason:synthesizer` | sonnet | Merges best of two versions with length discipline |
+| Judge | `autoreason:judge` | opus | Per-criterion analysis then blind ranking |
 
 ## Configuration
 
@@ -76,22 +76,21 @@ ANCHOR: Original task prompt (immutable, seen by all agents)
 
 LOOP:
   1. AUTHOR        → sees task only → produces Draft A
-  2. STRAWMAN      → sees task + A → finds all problems (no fixes)
+  2. STRAWMAN      → sees task + A → finds severity-rated problems (no fixes)
   3. GENERATE THREE CANDIDATES:
      A  = original draft (unchanged)
      B  = REWRITER sees task + A + critique → full rewrite
      AB = SYNTHESIZER sees task + A + B → merges best of both
   4. BLIND JUDGE PANEL (3 judges in parallel):
      - Latin square shuffle: A, B, AB into "Option 1/2/3" per judge
-     - Each judge ranks independently, no labels or author info
+     - Each judge: per-criterion analysis THEN ranking
      - Borda count: 1st=2pts, 2nd=1pt, 3rd=0pts
-  5. CONVERGENCE:
-     - Winner becomes new A
-     - If A (incumbent) wins → streak++
-     - If B or AB wins → streak = 0
-     - streak == 2 → STOP (converged)
-     - round == max_rounds → STOP (max reached)
-     - Otherwise → back to step 2
+  5. CONVERGENCE (multiple signals):
+     - Incumbent advantage: after round 2, challenger needs ≥2 margin
+     - Streak: incumbent wins/holds 2 in a row → STOP
+     - Stability: margin ≤1 for 2 consecutive rounds (round ≥3) → STOP
+     - Critique floor: ≤4 problems or 0 critical (round ≥2) → STOP
+     - Max rounds → STOP
 ```
 
 ## Execution Instructions
@@ -109,9 +108,15 @@ echo "=== Config File ===" && cat ~/.autoreason.json 2>/dev/null || echo "(none)
 **If no config file exists (`~/.autoreason.json`)**, this is the first run. Ask the user
 two questions using AskUserQuestion before proceeding:
 
-1. **Models:** "Which model configuration? **default** (sonnet + opus judges, recommended),
-   **max** (all opus), or **budget** (all haiku)?"
-2. **Max rounds:** "Max rounds before stopping? (default: 5, typical convergence: 2-3)"
+1. **Models:** "Which model configuration?
+   - **default** — Balanced cost and quality. Sonnet for generators, Opus for judges. (recommended)
+   - **max** — Highest quality, most expensive. Opus for all agents.
+   - **budget** — Lowest cost, fastest. Haiku for all agents."
+2. **Max rounds:** "Max rounds before stopping?
+   - **5** (default) — typical convergence in 2-3 rounds
+   - **7** — more room to iterate
+   - **10** — maximum refinement
+   - Or enter a custom number"
 
 Save their answers to `~/.autoreason.json` using the Write tool:
 ```json
@@ -194,7 +199,9 @@ Voice sample: {voice_sample or "none provided"}
 Brief: {the full task description}
 ```
 
-After user confirms, this is IMMUTABLE for the rest of the run.
+Then use AskUserQuestion to ask: "Does this anchor look good, or would you like to change anything?"
+If the user wants changes, update the anchor and ask again. Once confirmed, the anchor
+is IMMUTABLE for the rest of the run.
 
 **0c. Initialize state.**
 
@@ -203,6 +210,8 @@ round = 0
 streak = 0
 current_draft = null
 history = []
+margin_history = []
+critique_counts = []    # {critical: N, major: N, minor: N, total: N} per round
 ```
 
 ### Step 1: Author A
@@ -231,10 +240,11 @@ Report: `"Draft A complete ({word_count} words). Sending to critic..."`
 
 ### Step 2: Strawman Critique
 
-Spawn the `autoreason:strawman` subagent. Pass it the task AND Draft A:
+Spawn the `autoreason:strawman` subagent. Pass it the task AND Draft A.
 
+**For round 1:**
 ```
-Attack this draft. Problems only, no fixes.
+Attack this draft. Problems only, no fixes. Tag each problem CRITICAL, MAJOR, or MINOR.
 
 TASK:
 {anchor}
@@ -243,9 +253,30 @@ DRAFT:
 {draft_A}
 ```
 
-Save the critique.
+**For round 2+:**
+```
+Attack this draft. Problems only, no fixes. Tag each problem CRITICAL, MAJOR, or MINOR.
 
-Report: `"Critique received ({N} problems identified). Generating candidates..."`
+This is refinement round {round}. This draft has survived {round-1} round(s) of
+critique and revision. Focus on problems the target audience would actually notice.
+
+TASK:
+{anchor}
+
+DRAFT:
+{draft_A}
+```
+
+Save the critique. Count problems by severity (CRITICAL/MAJOR/MINOR) by scanning for
+the severity tags in the output. Append counts to `critique_counts[]`.
+
+**Check Critique Floor (round >= 2):**
+If the critique contains 0 CRITICAL and ≤ 2 MAJOR problems (or ≤ 4 total problems),
+skip the rewrite/judge cycle and **CONVERGE** — the draft has reached a high standard.
+Jump to Step 7.
+
+Report: `"Critique received ({N} problems: {C} critical, {M} major, {m} minor). Generating candidates..."`
+Or if converging: `"Critique received ({N} problems: {C} critical, {M} major, {m} minor). Draft quality is high — converging."`
 
 ### Step 3: Generate Three Candidates
 
@@ -391,6 +422,10 @@ to map back to A, B, AB using the mapping from Step 4.
 - Maximum possible score per candidate: 6 (all three judges rank it first)
 - Minimum possible score: 0 (all three judges rank it last)
 
+**Calculate margin:**
+- `margin = winner_score - second_place_score`
+- Append margin to `margin_history[]`
+
 **Tie-breaking:**
 1. Prefer the incumbent (A) — biases toward convergence, which is desirable
 2. If tie is between B and AB (neither is incumbent): prefer AB (synthesis incorporates both)
@@ -407,21 +442,47 @@ ROUND {N} RESULTS:
   A (incumbent): {score}/6
   B (rewrite):   {score}/6
   AB (synthesis): {score}/6
-  Winner: {winner} {" (tie-break: incumbent advantage)" if applicable}
+  Winner: {winner}
+  Margin: {margin} (winner vs runner-up)
   Confidence: {UNANIMOUS|MAJORITY|SPLIT}
-  Streak: {streak}/2
 ```
 
 ### Step 6: Convergence Check
 
-- If A (the incumbent) wins → increment streak
-- If B or AB wins → reset streak to 0; winner becomes new Draft A
-- If streak reaches 2 → STOP. Output final version.
-- If round count reaches max_rounds → STOP. Output best from final round + note non-convergence.
-- If confidence is SPLIT on the final convergence round → note that the user may want to run an additional round.
-- Otherwise → loop back to Step 2.
+Apply these rules in order. The first rule that triggers stops the loop.
 
-Report: `"Streak: {streak}/2. {Converged!|Continuing to round {N+1}...}"`
+**Rule 1 — Incumbent Advantage (round >= 3):**
+If the winner is NOT the incumbent AND the margin between the winner and the
+incumbent's score is ≤ 1 Borda point, the incumbent holds. In later rounds, marginal
+improvements are indistinguishable from judge noise. Count this as an incumbent win
+for streak purposes. The incumbent draft does NOT change.
+
+Report if triggered: `"Incumbent held — challenger margin too thin for round {N}."`
+
+**Rule 2 — Streak Convergence:**
+Track consecutive incumbent wins (including holds from Rule 1).
+- If incumbent wins or holds → streak++
+- If challenger wins decisively (margin ≥ 2, or any margin before round 3) → streak = 0;
+  winner becomes new Draft A
+- If streak reaches 2 → **CONVERGED.** Jump to Step 7.
+
+**Rule 3 — Stability Plateau (round >= 3):**
+If the last 2 entries in `margin_history[]` are both ≤ 1, candidates have reached
+equivalent quality. Further iteration is noise.
+→ **CONVERGED.** Jump to Step 7 with current incumbent.
+
+**Rule 4 — Max Rounds:**
+If round == max_rounds → **STOP.** Jump to Step 7. Note non-convergence.
+
+**Otherwise** → loop back to Step 2.
+
+Report:
+```
+Streak: {streak}/2
+Margins: [{margin_history}]
+{If converged: "Converged via {rule name}."}
+{If continuing: "Continuing to round {N+1}..."}
+```
 
 ### Step 7: Present Final Result
 
@@ -430,17 +491,21 @@ Show the user the converged winning version. Also provide a brief summary:
 ```
 AUTOREASON COMPLETE
 Rounds: {total}
-Convergence: {Yes (streak=2) | No (max rounds reached)}
+Convergence: {Yes (rule) | No (max rounds reached)}
 
 Round history:
-  Round 1: Winner={winner}, Confidence={level}, Scores: A={s}, B={s}, AB={s}
-  Round 2: Winner={winner}, Confidence={level}, Scores: A={s}, B={s}, AB={s}
-  ...
+| Round | Winner | Confidence | A | B | AB | Margin | Critique |
+|-------|--------|------------|---|---|-----|--------|----------|
+| 1     | {w}    | {c}        | # | # | #   | #      | C/M/m    |
+| ...   |        |            |   |   |     |        |          |
 
 Final version below:
 ---
 {final_text}
 ```
+
+Write the final text to a file using the Write tool: `~/.autoreason-output.md`.
+Report the file path so the user can access it.
 
 ## Judge Output Parsing
 
@@ -448,9 +513,17 @@ After each judge returns, validate the output:
 
 <parsing-rules>
 1. EXPECTED FORMAT:
+   The judge outputs an ANALYSIS section followed by RANK lines:
+
+   ANALYSIS:
+   [per-criterion analysis text — ignore for scoring purposes]
+
    RANK 1: Option [1-3] — [reason]
    RANK 2: Option [1-3] — [reason]
    RANK 3: Option [1-3] — [reason]
+
+   Extract ONLY the RANK lines for scoring. The ANALYSIS section provides reasoning
+   transparency but does not affect vote tallying.
 
 2. VALIDATION:
    - All three ranks present (RANK 1, RANK 2, RANK 3)
@@ -485,9 +558,10 @@ flow through the pipeline.
 1. **Every role is a separate subagent invocation.** Never combine roles in one context.
 2. **Judges never see labels like "original", "rewrite", or "synthesis."** Always "Option 1/2/3."
 3. **Latin square shuffle** is FIXED — use the exact mapping specified in Step 4. Each candidate appears in each position exactly once across the three judges.
-4. **The strawman never suggests fixes.** Problems only.
+4. **The strawman never suggests fixes.** Problems only, tagged with severity.
 5. **The synthesizer sees A and B but NOT the critique.** It works from outputs only.
 6. **Generate candidate AB exactly ONCE per round.** The same AB text goes to all three judges.
-7. **Maximum rounds = max_rounds (from config).** Stop and present best if no convergence.
+7. **Convergence uses multiple signals.** Incumbent advantage (round ≥ 3), streak, stability plateau, critique floor, and max rounds. Apply in order; first trigger wins.
 8. **Agents use their frontmatter model by default.** Override via the Agent tool's `model` parameter when environment variables specify different models (see Model Configuration).
 9. **When constructing prompts for subagents, copy the template EXACTLY as specified.** Do NOT add additional context, framing, commentary, or instructions beyond what each template specifies. The isolation of each agent depends on this.
+10. **Track margins and critique counts every round.** These feed convergence detection and the final report.

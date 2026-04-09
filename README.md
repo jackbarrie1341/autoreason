@@ -40,11 +40,14 @@ Check or change model configuration:
 ## What Happens
 
 1. **Author** writes a draft (sees only the task — fresh context, no bias)
-2. **Strawman** attacks it across 10 dimensions (problems only, no fixes — adversarial by design)
+2. **Strawman** attacks it across 11 dimensions with severity ratings (CRITICAL/MAJOR/MINOR — problems only, no fixes)
 3. Three candidates generated: **A** (original), **B** (rewrite), **AB** (synthesis — generated once, shared across judges)
-4. **3 blind judges** rank them with Latin square shuffled labels (Borda count, no position bias)
-5. Winner becomes new draft; loop until it wins twice in a row (convergence)
-6. Each round reports Borda scores, winner, judge confidence (unanimous/majority/split), and streak
+4. **3 blind judges** do per-criterion analysis then rank with Latin square shuffled labels (Borda count)
+5. Winner determined with multi-signal convergence:
+   - **Incumbent advantage** (round 3+): challenger needs ≥2 Borda margin
+   - **Streak**: incumbent wins/holds twice → converged
+   - **Stability plateau**: margin ≤1 for 2 consecutive rounds → converged
+   - **Critique floor**: ≤4 problems or 0 critical → converged
 
 Every agent runs in isolation with fresh context. No shared state between roles.
 
@@ -55,10 +58,10 @@ Every agent runs in isolation with fresh context. No shared state between roles.
 | Agent | Model | Why |
 |---|---|---|
 | Author | sonnet | Quality ceiling set by the iterative loop, not the first draft |
-| Strawman | sonnet | Structured dimensions guide effective critique on any model |
-| Rewriter | sonnet | Parallel capability to author |
-| Synthesizer | sonnet | Well-defined merge task |
-| Judge | **opus** | Most critical role — bad judging breaks the entire loop |
+| Strawman | sonnet | Severity-rated critique across 11 dimensions |
+| Rewriter | sonnet | Prioritizes CRITICAL/MAJOR fixes; avoids overcorrection |
+| Synthesizer | sonnet | Merges best elements with length discipline |
+| Judge | **opus** | Per-criterion analysis before ranking — most critical role |
 
 **Override with environment variables:**
 

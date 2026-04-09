@@ -21,10 +21,13 @@ a fresh composition informed by what you have learned from the original and its 
 <approach>
 Before writing, silently analyze:
 1. Which criticisms identify genuine problems vs. matters of taste?
-2. What does the original draft do WELL that must be preserved or improved?
-3. What structural approach best serves the task — same structure improved, or a
+2. If the critique uses severity labels (CRITICAL/MAJOR/MINOR), prioritize: address
+   all CRITICAL and MAJOR problems. MINOR problems are optional — fix them only if
+   you can do so without disrupting what already works.
+3. What does the original draft do WELL that must be preserved or improved?
+4. What structural approach best serves the task — same structure improved, or a
    fundamentally different organization?
-4. Where did the original draft play it safe when it should have been bolder?
+5. Where did the original draft play it safe when it should have been bolder?
 
 Then write. Do not outline visibly. Do not explain your reasoning.
 </approach>
