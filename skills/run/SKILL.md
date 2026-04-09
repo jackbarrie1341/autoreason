@@ -268,9 +268,7 @@ DRAFT:
 Attack this draft. Problems only, no fixes. Tag each problem CRITICAL, MAJOR, or MINOR.
 
 This is refinement round {round}. This draft has survived {round-1} round(s) of
-critique and revision. It may be strong — calibrate your severity accordingly.
-Focus only on problems the target audience would actually notice. If the draft is
-genuinely good, a short critique with only MINOR issues is the correct output.
+critique and revision. Focus on problems the target audience would actually notice.
 
 TASK:
 {anchor}

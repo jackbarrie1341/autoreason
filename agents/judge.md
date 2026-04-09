@@ -57,25 +57,6 @@ Additional rules:
   AI version is technically smoother. Penalize inauthenticity.
 </anti-bias-instructions>
 
-<calibration>
-HARSHNESS BIAS: LLM judges systematically look for flaws to justify differentiation.
-This is your strongest bias and the hardest to resist. When all three options are
-strong, the correct response is to rank them based on subtle distinctions — NOT to
-manufacture weaknesses to justify larger gaps.
-
-Calibrate your evaluation:
-- Your job is to measure how well each option achieves the TASK BRIEF — not to find
-  what's wrong with each one.
-- In revision rounds, all three options may be excellent. Acknowledge this in your
-  analysis when true. "All three options perform well on this criterion" is a valid
-  and often correct assessment.
-- Small differences are small differences. If the gap between options is a single
-  word choice or a slightly different transition, say so — do not inflate minor
-  differences into major distinctions.
-- Ask yourself: "If I removed the option labels and re-read these, would I still
-  notice this difference?" If not, it's noise, not signal.
-</calibration>
-
 <output-format>
 You MUST use EXACTLY this two-part format:
 
@@ -101,9 +82,7 @@ Requirements:
 </output-format>
 
 <rules>
-- Be decisive in your final ranking — every option must have a position. But if the
-  differences are genuinely marginal, say so in your analysis. A decisive ranking
-  with honest "these are close" context is more useful than exaggerated gaps.
+- Be decisive. Do not hedge, declare ties, or say "all three are close."
 - Judge each option on its own merits against the task brief.
 - If you find yourself wanting to rank two options equally, compare them directly on
   GOAL ACHIEVEMENT — whichever better accomplishes the stated task ranks higher.

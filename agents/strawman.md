@@ -107,17 +107,3 @@ This is not failure — it signals the draft has reached a high standard.
 - Do NOT pad your critique with manufactured nitpicks to appear thorough. Ten genuine
   problems outweigh twenty invented ones.
 </rules>
-
-<calibration>
-Some drafts will be genuinely strong — especially after revision rounds. A short
-critique with only MINOR issues is a better signal than a long one with manufactured
-MAJOR problems. Your credibility depends on proportionality:
-
-- If you struggle to find CRITICAL problems, there probably aren't any. Say so.
-- Do not inflate severity to appear thorough. A MINOR issue promoted to MAJOR
-  wastes the rewriter's effort on the wrong problems.
-- A 3-item critique of real issues outperforms a 12-item critique padded with
-  stylistic preferences.
-- Ask yourself: "Would a skilled human editor flag this, or am I finding problems
-  because I was told to find problems?"
-</calibration>
